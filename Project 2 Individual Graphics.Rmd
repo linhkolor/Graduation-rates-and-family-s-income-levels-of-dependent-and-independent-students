@@ -1,0 +1,87 @@
+---
+title: "Individual Project Graphics"
+author: "Kolor Nguyen"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.height = 4, fig.width = 6 )
+```
+
+
+```{r}
+library(tidyverse) 
+```
+
+
+```{r}
+# read in data 
+Colleges1 <- read.csv("https://ed-public-download.app.cloud.gov/downloads/Most-Recent-Cohorts-Scorecard-Elements.csv")
+Colleges2 <- read.csv("https://ed-public-download.app.cloud.gov/downloads/Most-Recent-Cohorts-Treasury-Elements.csv")
+Colleges3 <- read.csv("https://ed-public-download.app.cloud.gov/downloads/Most-Recent-Cohorts-All-Data-Elements.csv")
+# dimensions should be:
+# Colleges1 7112 by 190
+# Colleges2 7112 by 92
+# Colleges3 7112 by 1978
+#check that this is the case
+```
+
+```{r}
+data <- Colleges3 %>% select(INSTNM,C150_4,C200_4,C100_4,DEP_INC_PCT_M1,DEP_INC_PCT_M2,DEP_INC_PCT_H1,DEP_INC_PCT_H2,IND_INC_PCT_M1,IND_INC_PCT_M2,IND_INC_PCT_H1,IND_INC_PCT_H2,REGION)
+data2 <- Colleges1 %>% select(INSTNM,STABBR)
+finaldata <- left_join(x=data2,y=data)
+write_csv(finaldata,"dataproject2.csv")
+```
+
+```{r}
+                                   finaldata2 <- finaldata %>%  mutate_at(c("C200_4","C150_4","C100_4","DEP_INC_PCT_M1","DEP_INC_PCT_M2","DEP_INC_PCT_H1","DEP_INC_PCT_H2","IND_INC_PCT_M1","IND_INC_PCT_M2","IND_INC_PCT_H1","IND_INC_PCT_H2","REGION") , as.character)
+                                   finaldata2 <- finaldata2 %>%  mutate_at(c("C200_4","C150_4","C100_4","DEP_INC_PCT_M1","DEP_INC_PCT_M2","DEP_INC_PCT_H1","DEP_INC_PCT_H2","IND_INC_PCT_M1","IND_INC_PCT_M2","IND_INC_PCT_H1","IND_INC_PCT_H2","REGION") , as.numeric)
+```
+
+```{r}
+library(ggridges)
+finaldata3 <- finaldata2 %>% pivot_longer(cols = c(C100_4, C150_4, C200_4), 
+                                      names_to = "expected_time", values_to="completion_rate")
+finaldata3 <- finaldata3 %>%  
+                       mutate(expected_completion = ifelse(expected_time == "C100_4", "100%", 
+                              ifelse(expected_time == "C150_4", "150%", "200%"))) 
+                    
+ggplot(finaldata3,aes(x=expected_completion,y=completion_rate)) + geom_boxplot(fill="aquamarine4",notch=TRUE)  +  ggtitle("Distribution of percentage for each expected time of completion") + xlab("Expected time of completion") + ylab("Completion rate of 4-year institution")
+```
+
+```{r}
+library(ggplot2)
+finaldata4 <- finaldata3 %>% rename(Low_independent = IND_INC_PCT_M1, Middle_independent = IND_INC_PCT_M2, High_independent = IND_INC_PCT_H1,
+                              Highest_independent = IND_INC_PCT_H2) %>%
+                       pivot_longer(cols = c(Low_independent, Middle_independent, High_independent, Highest_independent), 
+                                      names_to = "independent_income", values_to="percentage_independent") 
+ggplot(finaldata4, aes(x=percentage_independent, y=completion_rate, color=expected_completion)) +
+          geom_smooth(mapping = aes(x = percentage_independent, y = completion_rate), se=FALSE) +
+          facet_wrap(independent_income ~ .) + scale_color_brewer(palette="Set2") +
+          ggtitle("Percentage of students independent on low ($30,001-$48,000),
+middle ($48,001-$75,000), high ($75,001-$110,000) and 
+highest ($110,001+) income family vs. their completion rate 
+at 4-year institution for 100%, 150% and 200% 
+of expected time to completion") +
+          xlab("Percentage of students independent on low income family") +
+          ylab("Completion rate of 4-year institutions")
+```
+
+```{r}
+library(stargazer)
+ModelA <- lm(C100_4~IND_INC_PCT_M1, data =finaldata2)
+ModelB <- lm(C100_4~IND_INC_PCT_M2, data =finaldata2)
+ModelC <- lm(C100_4~IND_INC_PCT_H1, data =finaldata2)
+ModelD <- lm(C100_4~IND_INC_PCT_H2, data =finaldata2)
+stargazer(ModelA, ModelB,ModelC, ModelD, type="text")
+```
+
+```{r}
+Model1 <- lm(C100_4~DEP_INC_PCT_M1, data =finaldata2)
+Model2 <- lm(C100_4~DEP_INC_PCT_M2, data =finaldata2)
+Model3 <- lm(C100_4~DEP_INC_PCT_H1, data =finaldata2)
+Model4 <- lm(C100_4~DEP_INC_PCT_H2, data =finaldata2)
+stargazer(Model1, Model2,Model3, Model4, type="text")
+
+```

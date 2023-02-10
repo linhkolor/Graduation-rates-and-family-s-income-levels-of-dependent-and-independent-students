@@ -1,0 +1,158 @@
+---
+title: "The relationship between graduation rates and family's income-levels of dependent and independent students"
+author: "Kolor Nguyen"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.height = 4, fig.width = 6 )
+```
+
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+
+```{r}
+# read in data 
+Colleges1 <- read.csv("https://ed-public-download.app.cloud.gov/downloads/Most-Recent-Cohorts-Scorecard-Elements.csv")
+Colleges2 <- read.csv("https://ed-public-download.app.cloud.gov/downloads/Most-Recent-Cohorts-Treasury-Elements.csv")
+Colleges3 <- read.csv("https://ed-public-download.app.cloud.gov/downloads/Most-Recent-Cohorts-All-Data-Elements.csv")
+# dimensions should be:
+# Colleges1 7112 by 190
+# Colleges2 7112 by 92
+# Colleges3 7112 by 1978
+#check that this is the case
+data <- Colleges3 %>% select(INSTNM,C150_4,C200_4,C100_4,DEP_INC_PCT_M1,DEP_INC_PCT_M2,DEP_INC_PCT_H1,DEP_INC_PCT_H2,IND_INC_PCT_M1,IND_INC_PCT_M2,IND_INC_PCT_H1,IND_INC_PCT_H2,REGION)
+data2 <- Colleges1 %>% select(INSTNM,STABBR)
+finaldata <- left_join(x=data2,y=data)
+write_csv(finaldata,"dataproject2.csv")
+finaldata2 <- finaldata %>%  mutate_at(c("C200_4","C150_4","C100_4","DEP_INC_PCT_M1","DEP_INC_PCT_M2","DEP_INC_PCT_H1","DEP_INC_PCT_H2","IND_INC_PCT_M1","IND_INC_PCT_M2","IND_INC_PCT_H1","IND_INC_PCT_H2","REGION") , as.character)
+                                  finaldata2 <- finaldata2 %>%  mutate_at(c("C200_4","C150_4","C100_4","DEP_INC_PCT_M1","DEP_INC_PCT_M2","DEP_INC_PCT_H1","DEP_INC_PCT_H2","IND_INC_PCT_M1","IND_INC_PCT_M2","IND_INC_PCT_H1","IND_INC_PCT_H2","REGION") , as.numeric)
+```
+
+Family income can have an immense effect on students' lives and study paths. Therefore, we have an in-deep investigation about the relationship between dependent and independent students with different ranges of their family income ($30,001-$48,000, $48,001-$75,000, $75,001-$110,000, $110,001+) and their completion rate as first-time, full-time students at 4-year institutions (100%/150%/200% of expected time to completion). In this study, we expect to see a significant difference between dependent and independent students in how their income status affect the institutions' graduation rate. Also, we predict that students with higher family income will be more likely to graduate on time as the family can support their tuition even with independent students.
+
+In our study, the graduation rates are calculated in percentages of students who graduate or complete their program within a specified timeframe. However, the number of students included in graduation rates do not represent all of the students at an institution because it does not count excludes part-time and transfer students in the data. The amount of time necessary for a student to complete all requirements for a degree or certificate in our study is four years in all standard institutions. Therefore, the completion rate is calculated as the total number of completers within 100% of normal time (4 years) and so that 150% and 200% equal to 6 years and 8 years respectively. Beside that, we divide family incomes into four different level, including Low income ($30,001-$48,000), Middle income ($48,001-$75,000), High income ($75,001-$110) and Highest income ($110,001+).
+
+
+```{r}
+library(ggridges)
+finaldata3 <- finaldata2 %>% pivot_longer(cols = c(C100_4, C150_4, C200_4), 
+                                      names_to = "expected_time", values_to="completion_rate")
+finaldata3 <- finaldata3 %>%  
+                       mutate(expected_completion = ifelse(expected_time == "C100_4", "100%", 
+                              ifelse(expected_time == "C150_4", "150%", "200%"))) 
+                    
+ggplot(finaldata3,aes(x=expected_completion,y=completion_rate)) + geom_boxplot(fill="aquamarine4",notch=TRUE)  +  ggtitle("Distribution of percentage for each expected time of completion") + xlab("Expected time of completion") + ylab("Completion rate of 4-year institution")
+```
+
+From this graph, we can see that in general, the vast majority of students do not manage to graduate in four years. It is not economical to not finish the degree in four years, but there are also some obstacles that may block the students' way to graduate in four years. One of the greatest obstacles is the students' income and also their family income. The fact that some students may not have enough money to graduate in 4 years can be because they have lower incomes. We also see that the overall 6-year graduation rate is pretty much higher than the 4-year graduation rate, but the 8-year graduation rate is not that much higher than the 6-year graduation rate. It is probably because if people graduate late, they will at least try to finish it in 6-year. Some students prefer to drop out rather than waiting for 8 years to graduate.
+
+```{r}
+Table2 <- finaldata2 %>% pivot_longer(cols = c(C100_4, C150_4, C200_4), 
+                                      names_to = "expected_time", values_to="completion_rate") %>% 
+                       rename(Low_dependent = DEP_INC_PCT_M1, Middle_dependent = DEP_INC_PCT_M2, High_dependent = DEP_INC_PCT_H1,
+                              Highest_dependent = DEP_INC_PCT_H2) %>%
+                       pivot_longer(cols = c(Low_dependent, Middle_dependent, High_dependent, Highest_dependent), 
+                                      names_to = "dependent_income", values_to="percentage") %>%
+                       mutate(expected_completion = ifelse(expected_time == "C100_4", "100%", 
+                              ifelse(expected_time == "C150_4", "150%", "200%")))
+                       
+Graph2 <- ggplot(Table2, aes(x=percentage, y=completion_rate, color=expected_completion)) +
+          geom_smooth(mapping = aes(x = percentage, y = completion_rate), se=FALSE) +
+          facet_wrap(dependent_income ~ .) +
+          ggtitle("Percentage of students dependent on low ($30,001-$48,000),
+middle ($48,001-$75,000), high ($75,001-$110,000) 
+and highest ($110,001+) income family vs. their completion rate 
+at 4-year institution for 100%, 150% and 200% 
+of expected time to completion") +
+          xlab("Percentage of students dependent on different family income levels") +
+          ylab("Completion rate of 4-year institutions")
+
+Graph2
+```
+
+In the figure above, we can see a similar correlation in the completion for students dependent on middle, high and highest-income families, while the opposite is shown for students dependent on low-income families. This can be explained by the idea that as long as the dependent student comes from a middle-income family, they will be able to afford to pay for their 4-year tuition and therefore graduate successfully. Inversely, having more dependent students from low-income families would mean many won't be able to afford their tuition along the way and drop out. 
+
+There are also a couple of trends in the graphs that suggest influence from data collection. Firstly, in the middle, high and highest family income graphs, there seems to be a drop in the students' completion rate when the percentage of students of those family incomes is at around 7. This is because the data for low family income students start at 7%, therefore the introduction of the new type of students causes a distribution in the data and drives the completion rates of the rest lower. Similarly, there seems to be a drop in the completion rate for low-income family students when the percentage of those students reaches 14-29, which causes a jump in percentages for the rest of the students. 
+
+Lastly, we see that the completion rates of students in any family income group is always higher when the expected time of completion is 150% and 200%. This could be because students who stay at the institution for longer than 4 years are more motivated and pressured to graduate since they have decided to remain at the institution for longer than normal, either due to the student himself/herself still wishing to graduate despite staying longer or being forced/pressured by their family to finish their studies since they have sacrificed so much money for it already.
+
+```{r}
+finaldata4 <- finaldata3 %>% rename(Low_independent = IND_INC_PCT_M1, Middle_independent = IND_INC_PCT_M2, High_independent = IND_INC_PCT_H1,
+                              Highest_independent = IND_INC_PCT_H2) %>%
+                       pivot_longer(cols = c(Low_independent, Middle_independent, High_independent, Highest_independent), 
+                                      names_to = "independent_income", values_to="percentage_independent") 
+Graph3 <- ggplot(finaldata4, aes(x=percentage_independent, y=completion_rate, color=expected_completion)) +
+          geom_smooth(mapping = aes(x = percentage_independent, y = completion_rate), se=FALSE) +
+          facet_wrap(independent_income ~ .) + scale_color_brewer(palette="Set2") +
+          ggtitle("Percentage of students independent on low ($30,001-$48,000),
+middle ($48,001-$75,000), high ($75,001-$110,000) and 
+highest ($110,001+) income family vs. their completion rate 
+at 4-year institution for 100%, 150% and 200% 
+of expected time to completion") +
+          xlab("Percentage of students independent on different family income levels") +
+          ylab("Completion rate of 4-year institutions")
+Graph3
+```
+
+From this graph, we can see that overall, the higher the percentage of independent students from higher-income level families, the higher the school graduation rate tends to be. Especially for independent high as well as higher family income level students, the relationship is the clearest. This might be because although those students come from wealthy families, they chose not to be dependent on them, most likely because they were smart enough to obtain tuition that fully pays for their education. In the case of low and middle-income families, they might be independent out of necessity, either because their family cannot afford to pay for them or don't want to because it would exert too much of their budget. Moreover, we see that for the trends of high and highest family income students increase as more of them are featured at the institution, evidently since it means there are more students capable of graduating. On the other hand, low and middle family income students have a horizontal trend, most likely because their family income does not dictate their ability to graduate - although middle family income students seem to have a slight upwards trend perhaps because some can classify as almost coming high-income families.
+
+This division between high/higher and low/middle family income students can also suggest their influence on each other in their trends. As seen when looking at the student percentages of each family income level, between 0-7% the completion rate of students for low and middle family income students is high, thus for high and higher family income students, it tends to be low. Similarly, in that interval, the former group's completion rates are decreasing, which causes the completion rates for the latter group to increase. 
+
+Lastly, just like in the previous graph comparing the completion rate and percentage of dependent students, when the expected completion time is 150% and 200% the completion rates are always higher - due to the same reasons.
+
+
+```{r}
+Graph1 <- finaldata2 %>% rename(Low_independent = IND_INC_PCT_M1,Low_dependent = DEP_INC_PCT_M1) %>% pivot_longer(cols = c(Low_independent,Low_dependent), names_to = "LowIncome", values_to = "PercentageL")  
+
+ggplot(Graph1, aes(x= PercentageL, y = C100_4)) +
+    geom_point() +
+    facet_wrap(~ LowIncome) +
+    geom_smooth() +
+          ggtitle("Percentate of dependent and independent students with
+family incomes between $30,001-$48,000 in nominal dollars
+completed at 100% at four-year insitutions") +
+          xlab("Percentage of students with low family income") +
+          ylab("Completion rate for first-time, full-time students
+at four-year institutions
+(100% of expected time to completion))")
+```
+
+From the two figures above which compare the differences in graduation rate between different family income levels, it is clearly shown that there is a significant different between dependent and independent students. Hence, we take a closer look at the group of students with low family income to analyze the differences between dependent and independent students and how they affect the schools' graduation rate in four years. Looking at the dependent student graph, there is a significant decrease in the graduation rate when there is higher rate of students who come from low income families. This can be easily explained due to the fact that these students depend on their families to pay for their tuitions and their parents might not be able to afford the whole 4 years. Hence, the schools with lower rate of poor students, for example for those are at around 10% rate, will have much higher amount of students, from 50% to 70%, who completed institutions in four years. As these students depends on their parents to pay for their tuitions, therefore, there is a significant relationship between the amount of students come from low income families in every schools with the schools graduation rate, even when those who graduated might or might not include those poor students.
+
+In contrast, as independent students are not depending on their parents' income but using their own money to pay for tuition. Therefore, the graph shows weak correlation in the relationship between percentage of poor students in a school and graduation rate of that school. Indeed, the graduation rate of students in most of the school is around 30% , no matter how much the percentage of students with low family income is.
+
+
+
+```{r}
+library(stargazer)
+finaldata5 <- finaldata2 %>% rename(LowIncome_independent = IND_INC_PCT_M1, MiddleIncome_independent = IND_INC_PCT_M2, HighIncome_independent = IND_INC_PCT_H1,
+                              HighestIncome_independent = IND_INC_PCT_H2, fouryear_percent_graduation_rate=C100_4, LowIncome_dependent = DEP_INC_PCT_M1, MiddleIncome_dependent = DEP_INC_PCT_M2, HighIncome_dependent = DEP_INC_PCT_H1,
+                              HighestIncome_dependent = DEP_INC_PCT_H2)
+ModelA <- lm(fouryear_percent_graduation_rate~LowIncome_independent, data =finaldata5)
+ModelB <- lm(fouryear_percent_graduation_rate~MiddleIncome_independent, data =finaldata5)
+ModelC <- lm(fouryear_percent_graduation_rate~HighIncome_independent, data =finaldata5)
+ModelD <- lm(fouryear_percent_graduation_rate~HighestIncome_independent, data =finaldata5)
+stargazer(ModelA, ModelB,ModelC, ModelD, type="text")
+```
+
+This is the regression table when the dependent variable is the 4-year graduation rate, and the independent variables are the percentages of different family income levels of independent students. We can see that, all else equal, the higher the percentage of the higher income level families that a school has, the higher the graduation rate tends to be. For example, a 1 percent increase in the percentage of highest income leads to an increase of 2.8 percent of graduation rate, on average. We expect this relationship to happen since these students are independent students, so students with higher family income level will increase the school's average graduation rate since they are independent, they must have some good qualities, and since they have richer families, they also tend to receive better education and are smarter. These coefficients are all statistically significant at a 1% level so it's worth considering them, although we can make the models better by adding more control variables. 
+
+```{r}
+Model1 <- lm(fouryear_percent_graduation_rate~LowIncome_dependent, data =finaldata5)
+Model2 <- lm(fouryear_percent_graduation_rate~MiddleIncome_dependent, data =finaldata5)
+Model3 <- lm(fouryear_percent_graduation_rate~HighIncome_dependent, data =finaldata5)
+Model4 <- lm(fouryear_percent_graduation_rate~HighestIncome_dependent, data =finaldata5)
+stargazer(Model1, Model2,Model3, Model4, type="text")
+```
+
+This is the regression table when the dependent variable is the 4-year graduation rate, and the independent variables are the percentages of different family income levels of dependent students. We observe considerably similar correlations in the case of dependent students as the case of independent students, but there are two noteworthy differences. First, the coefficient of the percentage of dependent students with low-income families on the four-year graduation rate is negative. So a 1 percent increase in the percentage of dependent students with a low-income family in a school, on average, will lower the school's four-year graduation rate by 2.53 percent. This is because since they have poor families and they are also dependent, they rely entirely on their family income and do not work to pay for college for their own. And when the families are too poor, the students cannot afford college and probably will drop out. 
+
+Another noticeable difference is that the relationship between 4-year graduation rate and dependent students who have families with the highest income is weaker than the relationship with dependent students who have families with high income. A 1 percent increase in the percentage of dependent students with the highest-income families leads to only 0.94 percent increase in the 4-year graduation rate, while a 1 percent increase in the percentage of dependent students with the highest-income families leads to 1.23 percent increase in the 4-year graduation rate  This is because dependent students with extremely wealthy families can be more spoiled and they don't have the urge to graduate early because they do not have any financial constraints.  
+
+In conclusion, the results are considerably aligned with what we expected at the beginning. A higher percentage of students with higher income level families tend to leads to a higher 4-year graduation rate. Furthermore, we also notice some other interesting things as we investigate dependent and independent students separately. We see that the correlation between 4-year graduation rate and family income levels are the strongest in the case of low-income dependent students and highest-income independent students. Schools have a higher percentage of low-income dependent students tend to have a lower 4-year graduation rate, and schools have a higher percentage of highest-income independent students tend to have a higher 4-year graduation rate.
