@@ -31,7 +31,7 @@ data2 <- Colleges1 %>% select(INSTNM,STABBR)
 finaldata <- left_join(x=data2,y=data)
 write_csv(finaldata,"dataproject2.csv")
 finaldata2 <- finaldata %>%  mutate_at(c("C200_4","C150_4","C100_4","DEP_INC_PCT_M1","DEP_INC_PCT_M2","DEP_INC_PCT_H1","DEP_INC_PCT_H2","IND_INC_PCT_M1","IND_INC_PCT_M2","IND_INC_PCT_H1","IND_INC_PCT_H2","REGION") , as.character)
-                                  finaldata2 <- finaldata2 %>%  mutate_at(c("C200_4","C150_4","C100_4","DEP_INC_PCT_M1","DEP_INC_PCT_M2","DEP_INC_PCT_H1","DEP_INC_PCT_H2","IND_INC_PCT_M1","IND_INC_PCT_M2","IND_INC_PCT_H1","IND_INC_PCT_H2","REGION") , as.numeric)
+finaldata2 <- finaldata2 %>%  mutate_at(c("C200_4","C150_4","C100_4","DEP_INC_PCT_M1","DEP_INC_PCT_M2","DEP_INC_PCT_H1","DEP_INC_PCT_H2","IND_INC_PCT_M1","IND_INC_PCT_M2","IND_INC_PCT_H1","IND_INC_PCT_H2","REGION") , as.numeric)
 ```
 
 Family income can have an immense effect on students' lives and study paths. Therefore, we have an in-deep investigation about the relationship between dependent and independent students with different ranges of their family income ($30,001-$48,000, $48,001-$75,000, $75,001-$110,000, $110,001+) and their completion rate as first-time, full-time students at 4-year institutions (100%/150%/200% of expected time to completion). In this study, we expect to see a significant difference between dependent and independent students in how their income status affect the institutions' graduation rate. Also, we predict that students with higher family income will be more likely to graduate on time as the family can support their tuition even with independent students.
@@ -47,7 +47,10 @@ finaldata3 <- finaldata3 %>%
                        mutate(expected_completion = ifelse(expected_time == "C100_4", "100%", 
                               ifelse(expected_time == "C150_4", "150%", "200%"))) 
                     
-ggplot(finaldata3,aes(x=expected_completion,y=completion_rate)) + geom_boxplot(fill="aquamarine4",notch=TRUE)  +  ggtitle("Distribution of percentage for each expected time of completion") + xlab("Expected time of completion") + ylab("Completion rate of 4-year institution")
+ggplot(finaldata3,aes(x=expected_completion,y=completion_rate)) + 
+geom_boxplot(fill="aquamarine4",notch=TRUE) + 
+ggtitle("Distribution of percentage for each expected time of completion") + 
+xlab("Expected time of completion") + ylab("Completion rate of 4-year institution")
 ```
 
 From this graph, we can see that in general, the vast majority of students do not manage to graduate in four years. It is not economical to not finish the degree in four years, but there are also some obstacles that may block the students' way to graduate in four years. One of the greatest obstacles is the students' income and also their family income. The fact that some students may not have enough money to graduate in 4 years can be because they have lower incomes. We also see that the overall 6-year graduation rate is pretty much higher than the 4-year graduation rate, but the 8-year graduation rate is not that much higher than the 6-year graduation rate. It is probably because if people graduate late, they will at least try to finish it in 6-year. Some students prefer to drop out rather than waiting for 8 years to graduate.
